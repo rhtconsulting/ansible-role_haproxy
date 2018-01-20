@@ -1,0 +1,9 @@
+- name: HAProxy | Install
+  include_tasks: install.yml
+  tags:
+    - haproxy-install
+
+- name: HAProxy | Configure
+  include_tasks: configure.yml
+  tags:
+    - haproxy-configure

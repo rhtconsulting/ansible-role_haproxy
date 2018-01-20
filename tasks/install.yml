@@ -1,0 +1,30 @@
+---
+- name: HAProxy | Install | Install Packages
+  package:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - haproxy
+  tags:
+    - haproxy-install
+
+- name: HAProxy | Install | Start and Enable Service
+  service:
+    name: haproxy
+    state: started
+    enabled: yes
+  tags:
+    - haproxy-install
+
+- name: HAProxy | Install | Configure Firewall
+  firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  with_items:
+    - 80
+    - 443
+    - 9000
+  tags:
+    - haproxy-install

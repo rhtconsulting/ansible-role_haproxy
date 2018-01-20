@@ -1,0 +1,38 @@
+---
+- name: HAProxy | Configure | Update haproxy.cfg
+  template:
+    src: templates/haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: haproxy
+    group: haproxy
+  register: haproxy_cfg_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update http_redirect.map
+  template:
+    src: templates/http_redirect.map.j2
+    dest: /etc/haproxy/http_redirect.map
+    owner: haproxy
+    group: haproxy
+  register: http_redirect_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update be_tcp.map
+  template:
+    src: templates/be_tcp.map.j2
+    dest: /etc/haproxy/be_tcp.map
+    owner: haproxy
+    group: haproxy
+  register: be_tcp_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Restart Service
+  service:
+    name: haproxy
+    state: restarted
+  when: haproxy_cfg_result.changed or http_redirect_result.changed or be_tcp_result.changed
+  tags:
+    - haproxy-configure

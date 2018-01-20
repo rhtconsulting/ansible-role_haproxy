@@ -1,0 +1,78 @@
+#jinja2: lstrip_blocks: True
+global
+  maxconn 20000
+
+  chroot      /var/lib/haproxy
+  pidfile     /var/run/haproxy.pid
+  user        haproxy
+  group       haproxy
+  daemon
+
+  stats socket /var/lib/haproxy/stats
+  stats timeout 2m
+
+  # Increase the default request size to be comparable to modern cloud load balancers (ALB: 64kb)
+  tune.maxrewrite 8192
+  tune.bufsize 32768
+
+  # Prevent vulnerability to POODLE attacks
+  ssl-default-bind-options no-sslv3
+
+# The default cipher suite can be selected from the three sets recommended by https://wiki.mozilla.org/Security/Server_Side_TLS,
+# or the user can provide one using the ROUTER_CIPHERS environment variable.
+# By default when a cipher set is not provided, intermediate is used.
+  # Intermediate cipher suite (default) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  tune.ssl.default-dh-param 2048
+  ssl-default-bind-ciphers ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+
+defaults
+  maxconn 20000
+
+  timeout connect 5s
+  timeout client 30s
+  timeout client-fin 1s
+  timeout server 30s
+  timeout server-fin 1s
+  timeout http-request 10s
+  timeout http-keep-alive 300s
+
+  # Long timeout for WebSocket connections.
+  timeout tunnel 1h
+
+listen stats :9000
+  mode http
+  stats enable
+  stats uri /
+
+frontend public
+  bind :80
+  mode http
+  tcp-request inspect-delay 5s
+  tcp-request content accept if HTTP
+
+  # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
+  http-request del-header Proxy
+
+  # DNS labels are case insensitive (RFC 4343), we need to convert the hostname into lowercase
+  # before matching, or any requests containing uppercase characters will never match.
+  http-request set-header Host %[req.hdr(Host),lower]
+
+  # check if we need to redirect/force using https.
+  acl secure_redirect base,map_reg(/etc/haproxy/http_redirect.map) -m found
+  redirect scheme https if secure_redirect
+
+frontend public_ssl
+  bind :443
+  tcp-request inspect-delay 5s
+  tcp-request content accept if { req_ssl_hello_type 1 }
+  acl sni req.ssl_sni -m found
+  use_backend be_tcp:%[req.ssl_sni,lower,map_reg(/etc/haproxy/be_tcp.map)] if sni
+
+{% for application in haproxy_applications %}
+backend be_tcp:{{ application.name }}
+  balance source
+  mode tcp
+  {% for server in application.servers %}
+  server {{ server.name }} {{ server.address }}:{{ server.port }} check
+  {% endfor %}
+{% endfor %}
