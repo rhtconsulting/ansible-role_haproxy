@@ -28,13 +28,13 @@ Information about the expected role parameters.
 ### haproxy_applications
 The `haproxy_applications` parameter is a list of hashes defining the applications to load balance. Each item in the list may contain the following parameters.
 
-
-| parameter             | required | default | choices         | comments 
-| --------------------- |:--------:|:-------:| --------------- |:-------- 
-| name                  | yes      |         |                 | Name of the application. Used in defining frontend and backend servers. Should be descriptive as will show up in HAProxy stats. Must match `/a-zA-Z0-9-_/`
-| domain                | yes      |         |                 | FQDN which will resolve to the HAProxy server(s) to then load balance the `servers`
-| http_redirect         | no       | `false` | `true`, `false` |  `true` to automatically redirect http to https, `false` not to redirect.
-| servers               | yes      |         |                 | List of hashes defining servers to load balance.
+| parameter             | required | default | choices     | comments 
+| --------------------- |:--------:|:-------:| ----------- |:-------- 
+| name                  | yes      |         |             | Name of the application. Used in defining frontend and backend servers. Should be descriptive as will show up in HAProxy stats. Must match `/a-zA-Z0-9-_/`
+| domain                | yes      |         |             | FQDN which will resolve to the HAProxy server(s) to then load balance the `servers`. Can either just be a simple FQDN or a regex statement to match a domain.
+| domain\_is\_regex     | no       | false   | true, false | `true` if the given `domain` is regex, `false` to treat as plane FQDN.
+| http\_redirect        | no       | false   | true, false | `true` to automatically redirect http to https, `false` not to redirect.
+| servers               | yes      |         |             | List of hashes defining servers to load balance.
 
 #### servers
 Each element in the `haproxy_applications` list must contain a `servers` key which is a list of hashes defining the servers to load balance for the respective application. Each item in the list may contain the following parameters.
