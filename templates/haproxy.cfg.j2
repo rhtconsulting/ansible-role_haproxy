@@ -58,21 +58,49 @@ frontend public
   http-request set-header Host %[req.hdr(Host),lower]
 
   # check if we need to redirect/force using https.
-  acl secure_redirect base,map_reg(/etc/haproxy/http_redirect.map) -m found
+  acl secure_redirect base,map_reg(/etc/haproxy/redirect_http_to_https.map) -m found
   redirect scheme https if secure_redirect
+
+  # determine if should expose http
+  acl http_expose base,map_reg(/etc/haproxy/expose_http.map) -m found
+
+  # use http backend if not https redirect and expose http
+  use_backend be_http:%[base,map_reg(/etc/haproxy/expose_http.map) if !secure_redirect http_expose
 
 frontend public_ssl
   bind :443
   tcp-request inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  acl sni req.ssl_sni -m found
-  use_backend be_tcp:%[req.ssl_sni,lower,map_reg(/etc/haproxy/be_tcp.map)] if sni
 
+  # determine if the conneciton is SNI
+  acl sni req.ssl_sni -m found
+
+  # determien if should expose https
+  acl https_expose req.ssl_sni,lower,map_reg(/etc/haproxy/expose_https.map) -m found
+  
+  # use tcp backend if SNI connection and expose https
+  use_backend be_tcp:%[req.ssl_sni,lower,map_reg(/etc/haproxy/expose_https.map)] if sni https_expose
+
+# create TCP backends
 {% for application in haproxy_applications %}
+{%   if application.expose_https | default(false) %}
 backend be_tcp:{{ application.name }}
   balance source
   mode tcp
-  {% for server in application.servers %}
-  server {{ server.name }} {{ server.address }}:{{ server.port }} check
-  {% endfor %}
+{%     for server in application.servers %}
+  server {{ server.name }} {{ server.address }}:{{ server.port_https | default(443) }} check
+{%     endfor %}
+{%   endif %}
+{% endfor %}
+
+# create HTTP backends
+{% for application in haproxy_applications %}
+{%   if application.expose_http | default(false) %}
+backend be_http:{{ application.name }}
+  balance source
+  mode http
+{%     for server in application.servers %}
+  server {{ server.name }} {{ server.address }}:{{ server.port_http | default(80) }} check
+{%     endfor %}
+{%   endif %}
 {% endfor %}

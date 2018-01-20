@@ -1,5 +1,0 @@
-{% for application in haproxy_applications %}
-  {% if (application.http_redirect | default(false)) %}
-^{{ application.domain | regex_escape() }}(:[0-9]+)?(/.*)?$ {{application.name}}
-  {% endif %}
-{% endfor %}

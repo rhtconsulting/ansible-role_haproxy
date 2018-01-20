@@ -9,23 +9,33 @@
   tags:
     - haproxy-configure
 
-- name: HAProxy | Configure | Update http_redirect.map
+- name: HAProxy | Configure | Update redirect_http_to_https.map
   template:
-    src: templates/http_redirect.map.j2
-    dest: /etc/haproxy/http_redirect.map
+    src: templates/redirect_http_to_https.map.j2
+    dest: /etc/haproxy/redirect_http_to_https.map
     owner: haproxy
     group: haproxy
-  register: http_redirect_result
+  register: redirect_http_to_https_result
   tags:
     - haproxy-configure
 
-- name: HAProxy | Configure | Update be_tcp.map
+- name: HAProxy | Configure | Update expose_http.map
   template:
-    src: templates/be_tcp.map.j2
-    dest: /etc/haproxy/be_tcp.map
+    src: templates/expose_http.map.j2
+    dest: /etc/haproxy/expose_http.map
     owner: haproxy
     group: haproxy
-  register: be_tcp_result
+  register: expose_http_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update expose_https.map
+  template:
+    src: templates/expose_https.map.j2
+    dest: /etc/haproxy/expose_https.map
+    owner: haproxy
+    group: haproxy
+  register: expose_https_result
   tags:
     - haproxy-configure
 
@@ -33,6 +43,6 @@
   service:
     name: haproxy
     state: restarted
-  when: haproxy_cfg_result.changed or http_redirect_result.changed or be_tcp_result.changed
+  when: haproxy_cfg_result.changed or redirect_http_to_https_result.changed or expose_http_result.changed or expose_https_result.changed
   tags:
     - haproxy-configure

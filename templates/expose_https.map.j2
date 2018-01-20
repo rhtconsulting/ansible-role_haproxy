@@ -1,0 +1,9 @@
+{% for application in haproxy_applications %}
+{%   if application.expose_https | default(false) %}
+{%     if application.domain_is_regex | default(false) %}
+^{{ application.domain }}(:[0-9]+)?(/.*)?$ {{application.name}}
+{%     else %}
+^{{ application.domain | regex_escape() }}(:[0-9]+)?(/.*)?$ {{application.name}}
+{%     endif %}
+{%   endif %}
+{% endfor %}
