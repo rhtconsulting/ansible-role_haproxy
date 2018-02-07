@@ -5,17 +5,17 @@ galaxy_info:
   license: license (Apache)
   min_ansible_version: 2.4
   platforms:
-  - name: EL
-    versions:
-      - 7
-  - galaxy_tags:
-      - haproxy
-      - redhat
-      - rhc
-      - tools
-  - categories:
-      - haproxy
-      - redhat
-      - rhc
-      - tools
+    - name: EL
+      versions:
+        - 7
+  galaxy_tags:
+    - haproxy
+    - redhat
+    - rhc
+    - tools
+  categories:
+    - haproxy
+    - redhat
+    - rhc
+    - tools
 dependencies: []
