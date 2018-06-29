@@ -65,7 +65,7 @@ frontend public
   acl http_expose base,map_reg(/etc/haproxy/expose_http.map) -m found
 
   # use http backend if not https redirect and expose http
-  use_backend be_http:%[base,map_reg(/etc/haproxy/expose_http.map) if !secure_redirect http_expose
+  use_backend be_http:%[base,map_reg(/etc/haproxy/expose_http.map)] if !secure_redirect http_expose
 
 frontend public_ssl
   bind :443
