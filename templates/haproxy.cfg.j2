@@ -39,7 +39,8 @@ defaults
   # Long timeout for WebSocket connections.
   timeout tunnel 1h
 
-listen stats :9000
+listen stats 
+  bind :9000
   mode http
   stats enable
   stats uri /
